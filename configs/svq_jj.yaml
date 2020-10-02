@@ -1,0 +1,16 @@
+core: "VQVAE"
+criterion: "mmd"
+strategy: "single" # Using single decoder structure
+loss_type: "A" # Calculate mmd distance loss
+learning_rate: 0.001
+epochs: 100
+early_stop: 15
+save_period: 10
+paired_chars: ["jia", "jin"] # Oracle -> Bronze
+level: "instance"
+model_params:
+  in_channels: 1
+  embedding_dim: 32
+  num_embeddings: 512
+  beta: 0.25
+

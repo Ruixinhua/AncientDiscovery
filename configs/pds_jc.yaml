@@ -1,0 +1,16 @@
+core: "VanillaVAE2"
+criterion: "mmd"
+strategy: "paired" # Using paired decoder structure
+loss_type: "B" # Only involve reconstruction loss
+learning_rate: 0.001
+epochs: 100
+early_stop: 15
+save_period: 10
+paired_chars: ["jin", "chu"] # Bronze -> Chu State
+level: "instance"
+model_params:
+  in_channels: 1
+  input_size: 96
+  latent_dim: 128
+  hidden_dims: 5
+
