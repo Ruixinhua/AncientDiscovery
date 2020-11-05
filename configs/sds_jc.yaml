@@ -4,7 +4,7 @@ strategy: "single" # Using single decoder structure
 loss_type: "A" # Calculate mmd distance loss
 learning_rate: 0.001
 epochs: 100
-early_stop: 15
+early_stop: 10
 save_period: 10
 paired_chars: ["jin", "chu"] # Bronze -> Chu State
 level: "instance"

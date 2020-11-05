@@ -3,6 +3,7 @@
 # @Author        : Liu Dairui
 # @Time          : 2020/4/28 17:45
 # @Function      : This is the class of single decoder trainer
+from tqdm import tqdm
 
 from trainers.base_trainer import BaseTrainer
 from util import loss_helper, model_helper
@@ -13,7 +14,8 @@ class SingleDecoderTrainer(BaseTrainer):
     def _train_epoch(self, **kwargs):
         target_recon_loss, source_recon_loss, dis_loss_all, count = 0.0, 0.0, 0.0, 0.0
         target_data, source_data, labels = self.dataset.random_data(self.target_data, self.source_data, self.labels)
-        for target_batch, source_batch, label_batch in zip(target_data, source_data, labels):
+        data = zip(target_data, source_data, labels)
+        for target_batch, source_batch, label_batch in tqdm(data, total=len(labels), desc="Training"):
             target_batch, source_batch = target_batch.to(self.config.device), source_batch.to(self.config.device)
             if not self.add_cons:
                 # run a batch of data

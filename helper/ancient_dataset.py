@@ -4,13 +4,14 @@
 # @Time          : 2020/5/6 16:06
 # @Function      : It defines the class of dataset
 import numpy as np
-
-from helper import Configuration
 import os
-from util import tools
 import torch
-from torch.utils.data import DataLoader
+import pandas as pd
 
+from datasets.dataset_manager import download_dataset
+from helper import ModelConfiguration
+from util import tools
+from torch.utils.data import DataLoader
 from helper.image_folder_with_paths import ImageFolderWithPaths
 
 
@@ -27,13 +28,15 @@ def get_dataset_by_path(dataset_path, transform, char_included=None):
     """
     char_included = list(os.listdir(dataset_path)) if char_included is None else char_included
     data, labels, paths = [], [], []
-    for char in char_included:
-        # fetch all tensor at once
-        char_data_loader = get_data_loader(os.path.join(dataset_path, char), transform, batch_size=512)
-        for batch in char_data_loader:
-            data.extend(batch[0].cpu().numpy())
-            labels.extend([char for _ in range(len(batch[0]))])
-            paths.extend(batch[2])
+    data_loader = get_data_loader(dataset_path, transform, batch_size=512)
+    classes = data_loader.dataset.classes
+    for batch in data_loader:
+        for img, label, path in zip(batch[0], batch[1], batch[2]):
+            label = classes[label]
+            if label in char_included:
+                data.append(img.cpu().numpy())
+                labels.append(label)
+                paths.append(path)
     return data, labels, paths
 
 
@@ -44,10 +47,13 @@ def get_data_loader(dataset_dir, transform, batch_size=1024):
 class AncientDataset:
 
     def __init__(self, conf=None, transform=None, root_dir="datasets/"):
-        conf = Configuration() if conf is None else conf
+        conf = ModelConfiguration() if conf is None else conf
         self.conf = conf
         self.ancient_exp_dir = os.path.join(root_dir, "ancient_3_exp")
-        self.ancient_ori_dir = os.path.join(root_dir, "ancient_3_ori")
+        self.ancient_ori_dir = os.path.join(root_dir, "ancient_5_ori")
+
+        if not os.path.exists(self.ancient_exp_dir) or not os.path.exists(self.ancient_ori_dir):
+            download_dataset(root_dir)
 
         self.paired_chars = conf.paired_chars
         self.target_root_dir = os.path.join(self.ancient_exp_dir, self.paired_chars[0])
@@ -61,7 +67,7 @@ class AncientDataset:
         if os.path.exists(self.source_dir):
             self.exp_chars = os.listdir(self.source_dir)
         self.target_dir = os.path.join(self.ancient_ori_dir, self.target_name)
-        self.transform = tools.get_default_transform(self.conf.core) if transform is None else transform
+        self.transform = transform if transform else tools.get_default_transform(conf.model_params["in_channels"])
 
     def split_dataset(self, batch_size=100, train_chars=None, val_chars=None):
         self._split_dataset(batch_size, train_chars, val_chars)
@@ -118,6 +124,16 @@ class AncientDataset:
         labels = [labels[i * self.batch_size:(i + 1) * self.batch_size] for i in range(batch_num)]
         return batch_data1, batch_data2, labels
 
+    def get_train_data(self, dataset_path):
+        data_dict = {"data": [], "label": []}
+        data_loader = get_data_loader(dataset_path, self.transform, batch_size=512)
+        for batch in data_loader:
+            if batch[0].shape[0] == 1:
+                batch[0] = torch.cat((batch[0], batch[0]), 0)
+            data_dict["data"].extend(batch[0].cpu().numpy())
+            data_dict["label"].extend(np.asarray(data_loader.dataset.classes)[batch[1].cpu().numpy()])
+        return pd.DataFrame(data_dict)
+
     def _get_paired_data(self, char_included=None):
         """
 
@@ -129,14 +145,12 @@ class AncientDataset:
         """
         char_included = self.char_list if char_included is None else char_included
         char_included = [char for char in char_included if char in self.char_list]
+        target_df, source_df = self.get_train_data(self.target_root_dir), self.get_train_data(self.source_root_dir)
         self.target_data, self.source_data, self.labels = [], [], []
-        for char in char_included:
-            data1_loader = get_data_loader(os.path.join(self.target_root_dir, char), self.transform)
-            data2_loader = get_data_loader(os.path.join(self.source_root_dir, char), self.transform)
-            for batch1, batch2 in zip(data1_loader, data2_loader):
-                if batch1[0].shape[0] == 1:
-                    batch1[0] = torch.cat((batch1[0], batch1[0]), 0)
-                    batch2[0] = torch.cat((batch2[0], batch2[0]), 0)
-                self.target_data.extend(batch1[0].cpu().numpy())
-                self.source_data.extend(batch2[0].cpu().numpy())
-                self.labels.extend([char for _ in range(len(batch1[0]))])
+        for (label, df) in target_df.groupby(["label"]):
+            if label not in char_included:
+                continue
+            self.labels.extend([label for _ in range(len(df["data"]))])
+            self.target_data.extend(df["data"])
+            self.source_data.extend(source_df["data"][source_df["label"] == label])
+

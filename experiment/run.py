@@ -41,7 +41,7 @@ def experiment(config_file, root_dir):
 if __name__ == "__main__":
     # set argument
     parser = argparse.ArgumentParser(description="Generic runner for SDS and PDS structure")
-    conf_path, root = "../configs/svq_jj.yaml", "../datasets/"
+    conf_path, root = "../configs/sds_jj.yaml", "../datasets/"
     parser.add_argument("--config", "-c", dest="filename", metavar="FILE", help="config file path",  default=conf_path)
     parser.add_argument("--root", "-r", dest="root", metavar="TEXT", help="dataset root directory", default=root)
     args = parser.parse_args()

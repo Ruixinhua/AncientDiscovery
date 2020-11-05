@@ -14,20 +14,21 @@ class VanillaVAE(nn.Module):
     def __init__(self, in_channels=3, input_size=96, latent_dim=128, hidden_dims=5):
         super(VanillaVAE, self).__init__()
         self.latent_dim = latent_dim
-        self.hidden_dims = [2**i for i in range(5, hidden_dims+5)]
-        self.decode_hidden_dims = [2**i for i in range(hidden_dims+4, 4, -1)]
+        self.hidden_dims = [2**i for i in range(5, hidden_dims+5)] if hidden_dims > 1 else [128]
+        self.decode_hidden_dims = [2**i for i in range(hidden_dims+4, 4, -1)] if hidden_dims > 1 else [128]
         self.output_size = input_size
 
         # Build Encoder
         modules = []
+        channels = in_channels
         for h_dim in self.hidden_dims:
             layer = nn.Sequential(
-                nn.Conv2d(in_channels=in_channels, out_channels=h_dim, kernel_size=3, stride=2, padding=1),
+                nn.Conv2d(in_channels=channels, out_channels=h_dim, kernel_size=3, stride=2, padding=1),
                 nn.BatchNorm2d(h_dim),
                 nn.ReLU()
             )
             modules.append(layer)
-            in_channels = h_dim
+            channels = h_dim
             self.output_size = math.floor((self.output_size + 2 * 1 - 3) / 2 + 1)
 
         self.encoder = nn.Sequential(*modules)
@@ -53,8 +54,8 @@ class VanillaVAE(nn.Module):
                                padding=1, output_padding=1),
             nn.BatchNorm2d(self.decode_hidden_dims[-1]),
             nn.ReLU(),
-            nn.ConvTranspose2d(self.decode_hidden_dims[-1], out_channels=3, kernel_size=3, padding=1),
-            nn.BatchNorm2d(3),
+            nn.ConvTranspose2d(self.decode_hidden_dims[-1], out_channels=in_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(in_channels),
             nn.Tanh()
         )
 

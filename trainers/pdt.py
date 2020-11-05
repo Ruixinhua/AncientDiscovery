@@ -3,6 +3,8 @@
 # @Author        : Liu Dairui
 # @Time          : 2020/4/28 17:45
 # @Function      : This is the class of paired decoder trainer
+from tqdm import tqdm
+
 from trainers.base_trainer import BaseTrainer
 from util import loss_helper, model_helper
 
@@ -11,7 +13,8 @@ class PairedDecoderTrainer(BaseTrainer):
     def _train_epoch(self):
         target_recon_loss, source_recon_loss, dis_loss_all, count = 0.0, 0.0, 0.0, 0.0
         target_data, source_data, labels = self.dataset.random_data(self.target_data, self.source_data, self.labels)
-        for target_batch, source_batch, label_batch in zip(target_data, source_data, labels):
+        data = zip(target_data, source_data, labels)
+        for target_batch, source_batch, label_batch in tqdm(data, total=len(labels), desc="Training"):
             target_batch, source_batch = target_batch.to(self.device), source_batch.to(self.device)
             target_code, target_loss = model_helper.run_batch(self.model, target_batch, self.core, input_source=False)
             source_code, source_loss = model_helper.run_batch(self.model, source_batch, self.core, input_source=True)

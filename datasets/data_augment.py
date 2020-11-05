@@ -82,5 +82,5 @@ if __name__ == "__main__":
     """
     replace with your own dataset path
     """
-    ori_root_dir, exp_root_dir = os.path.abspath("ancient_3_ori"), os.path.abspath("ancient_3_exp")
+    ori_root_dir, exp_root_dir = os.path.abspath("ancient_5_ori"), os.path.abspath("ancient_3_exp")
     expand_adversarial(models.alexnet(pretrained=True).eval().to(device), ori_root_dir, exp_root_dir, 50)

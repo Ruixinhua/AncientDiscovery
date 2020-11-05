@@ -124,7 +124,8 @@ class BaseTrainer:
             # save logged information into log dict
             log.update(self._train_epoch())
             best = False
-            self.model.eval()
+            # self.model.eval()
+            self.model.train(True)
             val_result = self.predict()
             log.update(val_result)
 

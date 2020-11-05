@@ -45,6 +45,7 @@ class Prediction:
         if with_cluster:
             source_outputs = cluster.get_cluster_output_df(source_outputs, add_center=False)
             for (label, center), group_df in source_outputs.groupby(["label", "center"]):
+                group_df = group_df.fillna(0)
                 output = [o for o in group_df["feature"]]
                 source_centers.append(np.mean(output, axis=0))
                 source_labels_mapping.append(label+str(center))
@@ -70,6 +71,7 @@ class Prediction:
         if "path" in source_outputs:
             source_centers, source_labels_mapping = [], []
             for label, group_df in source_outputs.groupby(["label"]):
+                group_df = group_df.fillna(0)
                 output = [o for o in group_df["feature"]]
                 source_centers.extend(output)
                 source_labels_mapping.extend([p for p in group_df["path"]])
@@ -82,6 +84,7 @@ class Prediction:
         if source_outputs.empty:
             source_outputs = self.get_source_output(source_paths)
         source_centers, source_labels_mapping = self._get_source(source_outputs, with_cluster)
+        source_centers = np.nan_to_num(source_centers)
         classifier = KNeighborsClassifier(n_neighbors=self.size)
         classifier.fit(source_centers, source_labels_mapping)
         return classifier
@@ -98,6 +101,7 @@ class Prediction:
             target_outputs = target_outputs.append(pd.DataFrame(output), ignore_index=True)
         target_centers, target_labels, paths = [], [], []
         for label, group_df in target_outputs.groupby(["label"]):
+            group_df = group_df.fillna(0)
             output = [o for o in group_df["feature"]]
             if self.mode == "instance":
                 target_centers.extend(output)

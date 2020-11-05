@@ -65,16 +65,13 @@ def get_model_class(model_type="AE", **model_params):
     return model_class(**model_params)
 
 
-def get_default_transform(model_type, img_size=96):
-    if model_type == "AE":
-        return transforms.Compose([transforms.Grayscale(), transforms.ToTensor()])
-    elif model_type == "ResNet_VAE" or model_type == "VanillaVAE" or model_type == "VanillaVAE2" \
-            or model_type == "VQVAE":
-        transform = transforms.Compose(
-            [transforms.Grayscale(num_output_channels=1), transforms.ToTensor()]
-        )
-        return transform
-    return transforms.Compose([transforms.ToTensor()])
+def get_default_transform(input_channels=3, img_size=96):
+    if input_channels == 1:
+        transform = transforms.Compose([transforms.Grayscale(), transforms.Resize([img_size, img_size]),
+                                        transforms.ToTensor()])
+    else:
+        transform = transforms.Compose([transforms.Resize([img_size, img_size]), transforms.ToTensor()])
+    return transform
 
 
 def get_model_by_state(state_dic_path, model_class, device=get_device()):

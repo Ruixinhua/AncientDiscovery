@@ -5,7 +5,6 @@
 # @Function      : This is the training process for 10-fold cross validation
 import argparse
 import os
-import shutil
 
 import yaml
 
@@ -14,6 +13,7 @@ from helper import AncientDataset, ModelConfiguration
 from trainers import SingleDecoderTrainer, PairedDecoderTrainer
 import pandas as pd
 import numpy as np
+import torch.optim as optim
 
 
 def create_cross_dataset(num, char_list, path_test, path_val):
@@ -41,9 +41,10 @@ if __name__ == "__main__":
     root = "../datasets/"
     parser.add_argument('--root', '-r', dest="root", metavar='TEXT', help='dataset root directory', default=root)
     args = parser.parse_args()
-    for conf_path in os.scandir("../configs/"):
+    conf_paths = ["../configs/sds_jc.yaml"]
+    for conf_path in conf_paths:
         # load configuration
-        config = tools.load_config(conf_path.path)
+        config = tools.load_config(conf_path)
         saved_path = os.path.join("_".join(config["paired_chars"]), config["core"]+"_"+config["level"])
         conf = ModelConfiguration(**config, saved_path=saved_path)
 
@@ -69,15 +70,19 @@ if __name__ == "__main__":
             config["saved_path"] = os.path.join(saved_path, "cross", str(i))
             with open(conf.log_path + "/" + "config.yaml", "w") as w:
                 yaml.safe_dump(config, w)
-            dataset.split_dataset(train_chars=train_chars.split(","), val_chars=val_chars.split(","))
+            dataset.split_dataset(train_chars=train_chars.split(","), val_chars=val_chars.split(","), batch_size=64)
 
             # load trainer
             is_single = conf.strategy == "single"
             trainer = SingleDecoderTrainer(conf, dataset) if is_single else PairedDecoderTrainer(conf, dataset)
-            # if os.path.exists(conf.best_model_path):
-            #     trainer.resume_checkpoint(conf.best_model_path)
-            #     trainer.config = conf
-            trainer.train()
+            if os.path.exists(conf.best_model_path):
+                trainer.resume_checkpoint(conf.best_model_path)
+                trainer.config = conf
+                trainer.optimizer = optim.Adam(trainer.model.parameters(), lr=conf.lr)
+            try:
+                trainer.train()
+            except:
+                i += 1
+                continue
             char_lists_combination.loc[i, 'checked'] += 1
             i += 1
-
