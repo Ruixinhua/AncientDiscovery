@@ -64,6 +64,7 @@ def unzip_file(zip_src, dst_dir, clean_zip_file=True):
 
     for file in tqdm(fz.namelist(), total=len(fz.namelist()), desc="Unzip"):
         fz.extract(file, dst_dir)
+    fz.close()
     if clean_zip_file:
         os.remove(zip_src)
 
